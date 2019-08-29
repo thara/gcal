@@ -63,10 +63,17 @@ def main(args):
     cal_ids = args[1]
     days = int(args[2])
 
+    opt = ""
+    if 4 <= len(args):
+        opt = args[3]
+
     today = datetime.datetime.now(jst)
 
     for start_time, end, start_time, end_time, summary in list_all_events_in_day(cal_ids, service, today, days):
-        print("{start} - {end} {event}".format(start=start_time.strftime('%H:%M'), end=end_time.strftime('%H:%M'), event=summary))
+        if opt == "--no-times":
+            print("{event}".format(event=summary))
+        else:
+            print("{start} - {end} {event}".format(start=start_time.strftime('%H:%M'), end=end_time.strftime('%H:%M'), event=summary))
 
 
 if __name__ == '__main__':
