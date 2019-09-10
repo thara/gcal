@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -54,26 +55,29 @@ def main(args):
     credentials = get_credentials(client_secret_file_path)
     service = get_service(credentials)
 
-    if len(args) == 1:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('cal_ids', nargs='?')
+    parser.add_argument('days', type=int, nargs='?')
+    parser.add_argument('--no-times', action='store_true')
+    parser.add_argument('--markdown-list', action='store_true')
+    args = parser.parse_args()
+
+    if args.cal_ids is None:
         cals = get_calendars(service)
         for (id, summary) in cals:
             print(id, summary)
         return
 
-    cal_ids = args[1]
-    days = int(args[2])
-
-    opt = ""
-    if 4 <= len(args):
-        opt = args[3]
-
     today = datetime.datetime.now(jst)
 
-    for start_time, end, start_time, end_time, summary in list_all_events_in_day(cal_ids, service, today, days):
-        if opt == "--no-times":
-            print("{event}".format(event=summary))
+    for start_time, end, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days):
+        prefix = '- ' if args.markdown_list else ''
+
+        if args.no_times:
+            print("{prefix}{event}".format(prefix=prefix, event=summary))
         else:
-            print("{start} - {end} {event}".format(start=start_time.strftime('%H:%M'), end=end_time.strftime('%H:%M'), event=summary))
+            print("{prefix}{start} - {end} {event}".format(
+                prefix=prefix, start=start_time.strftime('%H:%M'), end=end_time.strftime('%H:%M'), event=summary))
 
 
 if __name__ == '__main__':
