@@ -1,9 +1,12 @@
 import argparse
 import os
 import sys
+from functools import reduce
 
 import datetime
 import httplib2
+
+from collections import defaultdict
 
 import dateutil.parser
 import pytz
@@ -46,8 +49,45 @@ def list_all_events_in_day(cal_ids, service, today, days):
         for summary, start, end in events:
             start_time = dateutil.parser.parse(start)
             end_time = dateutil.parser.parse(end)
-            results.append((start_time, end, start_time, end_time, summary))
+            results.append((start, end, start_time, end_time, summary))
     return sorted(results)
+
+
+def list_cals(service, args):
+    if args.cal_ids is None:
+        cals = get_calendars(service)
+        for (id, summary) in cals:
+            print(id, summary)
+
+
+def list_events(service, args):
+    today = datetime.datetime.now(jst)
+
+    for start, end, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days):
+        prefix = '- ' if args.markdown_list else ''
+
+        if args.no_times:
+            print("{prefix}{event}".format(prefix=prefix, event=summary))
+        else:
+            print("{prefix}{start} - {end} {event}".format(
+                prefix=prefix, start=start_time.strftime('%H:%M'), end=end_time.strftime('%H:%M'), event=summary))
+
+
+def calc_hours(service, args):
+    today = datetime.datetime.now(jst)
+
+    events = defaultdict(list)
+
+    for _, _, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days):
+        events[summary].append(end_time - start_time)
+
+    total = None
+    for (summary, time_list) in events.items():
+        time = reduce(lambda a, b: a + b, time_list)
+        print("{0} - {1}".format(summary, time))
+        total = time if total is None else total + time
+
+    print("\nTotal: {0}".format(total))
 
 
 def main(args):
@@ -56,28 +96,26 @@ def main(args):
     service = get_service(credentials)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('cal_ids', nargs='?')
-    parser.add_argument('days', type=int, nargs='?')
-    parser.add_argument('--no-times', action='store_true')
-    parser.add_argument('--markdown-list', action='store_true')
+
+    sub = parser.add_subparsers(title='sub commands')
+
+    list_parser = sub.add_parser('list')
+    list_parser.set_defaults(func=list_cals)
+
+    event_parser = sub.add_parser('events')
+    event_parser.set_defaults(func=list_events)
+    event_parser.add_argument('cal_ids', nargs='?')
+    event_parser.add_argument('days', type=int, nargs='?')
+    event_parser.add_argument('--no-times', action='store_true')
+    event_parser.add_argument('--markdown-list', action='store_true')
+
+    hour_parser = sub.add_parser('hour')
+    hour_parser.set_defaults(func=calc_hours)
+    hour_parser.add_argument('cal_ids', nargs='?')
+    hour_parser.add_argument('days', type=int, nargs='?')
+
     args = parser.parse_args()
-
-    if args.cal_ids is None:
-        cals = get_calendars(service)
-        for (id, summary) in cals:
-            print(id, summary)
-        return
-
-    today = datetime.datetime.now(jst)
-
-    for start_time, end, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days):
-        prefix = '- ' if args.markdown_list else ''
-
-        if args.no_times:
-            print("{prefix}{event}".format(prefix=prefix, event=summary))
-        else:
-            print("{prefix}{start} - {end} {event}".format(
-                prefix=prefix, start=start_time.strftime('%H:%M'), end=end_time.strftime('%H:%M'), event=summary))
+    args.func(service, args)
 
 
 if __name__ == '__main__':
