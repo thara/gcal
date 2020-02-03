@@ -15,7 +15,6 @@ from credentials import get_credentials
 
 jst = pytz.timezone('Asia/Tokyo')
 
-
 def get_service(credentials):
     http = credentials.authorize(httplib2.Http())
     return discovery.build('calendar', 'v3', http=http)
@@ -83,11 +82,15 @@ def calc_hours(service, args):
 
     total = None
     for (summary, time_list) in events.items():
-        time = reduce(lambda a, b: a + b, time_list)
-        print("{0} - {1}".format(summary, time))
-        total = time if total is None else total + time
+        if args.no_times:
+            print(summary)
+        else:
+            time = reduce(lambda a, b: a + b, time_list)
+            print("{0} - {1}".format(summary, time))
+            total = time if total is None else total + time
 
-    print("\nTotal: {0}".format(total))
+    if total is not None:
+        print("\nTotal: {0}".format(total))
 
 
 def main(args):
@@ -113,6 +116,7 @@ def main(args):
     hour_parser.set_defaults(func=calc_hours)
     hour_parser.add_argument('cal_ids', nargs='?')
     hour_parser.add_argument('days', type=int, nargs='?')
+    hour_parser.add_argument('--no-times', action='store_true')
 
     args = parser.parse_args()
     args.func(service, args)
