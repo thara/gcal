@@ -3,7 +3,10 @@ import os
 from oauth2client import client, tools
 from oauth2client.file import Storage
 
-SCOPES = 'https://www.googleapis.com/auth/calendar'
+SCOPES = [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/drive.file'
+]
 APPLICATION_NAME = 'gcal'
 
 def get_credentials(client_secret_file, credential_path='credentials.json'):
