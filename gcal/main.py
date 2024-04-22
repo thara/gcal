@@ -119,7 +119,10 @@ def main(args):
     hour_parser.add_argument('--no-times', action='store_true')
 
     args = parser.parse_args()
-    args.func(service, args)
+    try:
+        args.func(service, args)
+    except AttributeError:
+        parser.print_help()
 
 
 if __name__ == '__main__':
