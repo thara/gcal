@@ -53,10 +53,9 @@ def list_all_events_in_day(cal_ids, service, today, days):
 
 
 def list_cals(service, args):
-    if args.cal_ids is None:
-        cals = get_calendars(service)
-        for (id, summary) in cals:
-            print(id, summary)
+    cals = get_calendars(service)
+    for (id, summary) in cals:
+        print(id, summary)
 
 
 def list_events(service, args):
