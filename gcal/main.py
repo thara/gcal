@@ -41,20 +41,22 @@ def get_events_in_day(service, cal_id, day):
     print(start, end)
 
     for i in r.get('items'):
-        start = i['start'].get('dateTime', None)
-        if start is None:
-            start = i['start']['date']
-        end = i['end'].get('dateTime', None)
-        if end is None:
-            end = i['end']['date']
+        start = i['start'].get('dateTime')
+        end = i['end'].get('dateTime')
         yield i['summary'], start, end
 
 
-def list_all_events_in_day(cal_ids, service, today, days):
+def list_all_events_in_day(cal_ids, service, today, days, skip_entire_event=False):
     results = []
     for cal_id in cal_ids.split(','):
         events = get_events_in_day(service, cal_id, today + datetime.timedelta(days=days))
         for summary, start, end in events:
+            if all([skip_entire_event, start is None, end is None]):
+                continue
+            if start is None:
+                start = '00:00'
+            if end is None:
+                end = '00:00'
             start_time = dateutil.parser.parse(start)
             end_time = dateutil.parser.parse(end)
             results.append((start, end, start_time, end_time, summary))
@@ -70,7 +72,7 @@ def list_cals(service, args):
 def list_events(service, args):
     today = datetime.datetime.now(jst)
 
-    for start, end, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days):
+    for start, end, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days, args.skip_entire):
         prefix = '- ' if args.markdown_list else ''
 
         if args.no_times:
@@ -85,7 +87,7 @@ def calc_hours(service, args):
 
     events = defaultdict(list)
 
-    for _, _, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days):
+    for _, _, start_time, end_time, summary in list_all_events_in_day(args.cal_ids, service, today, args.days, True):
         events[summary].append(end_time - start_time)
 
     total = None
@@ -119,6 +121,7 @@ def main(args):
     event_parser.add_argument('days', type=int, nargs='?')
     event_parser.add_argument('--no-times', action='store_true')
     event_parser.add_argument('--markdown-list', action='store_true')
+    event_parser.add_argument('--skip-entire', action='store_true')
 
     hour_parser = sub.add_parser('hour')
     hour_parser.set_defaults(func=calc_hours)
