@@ -38,7 +38,16 @@ def get_events_in_day(service, cal_id, day):
         calendarId=cal_id, timeMin=start, timeMax=end, singleEvents=True, orderBy='startTime'
     ).execute()
 
-    return [(i['summary'], i['start']['dateTime'], i['end']['dateTime']) for i in r.get('items')]
+    print(start, end)
+
+    for i in r.get('items'):
+        start = i['start'].get('dateTime', None)
+        if start is None:
+            start = i['start']['date']
+        end = i['end'].get('dateTime', None)
+        if end is None:
+            end = i['end']['date']
+        yield i['summary'], start, end
 
 
 def list_all_events_in_day(cal_ids, service, today, days):
