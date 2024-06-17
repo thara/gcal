@@ -38,8 +38,6 @@ def get_events_in_day(service, cal_id, day):
         calendarId=cal_id, timeMin=start, timeMax=end, singleEvents=True, orderBy='startTime'
     ).execute()
 
-    print(start, end)
-
     for i in r.get('items'):
         start = i['start'].get('dateTime')
         end = i['end'].get('dateTime')
